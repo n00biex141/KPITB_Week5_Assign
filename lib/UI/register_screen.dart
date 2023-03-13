@@ -1,8 +1,11 @@
+import 'package:email_validator/email_validator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_signin_button/flutter_signin_button.dart';
-import 'package:week5_assignment/Functions/login_message.dart';
+import 'package:week5_assignment/Functions/logreg_error.dart';
 import 'package:week5_assignment/UI/login_screen.dart';
+import 'package:week5_assignment/main.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,10 +16,11 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  TextEditingController nameController = TextEditingController();
-  TextEditingController idController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController confpassController = TextEditingController();
+  final formkey = GlobalKey<FormState>();
+
+  final controllerName = TextEditingController();
+  final controllerID = TextEditingController();
+  final controllerPass = TextEditingController();
 
   bool fnameVis = false, emailVis = false, passVis = false, cpassVis = false;
   bool istermAccept = false;
@@ -27,13 +31,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool iscpassTextVis = false;
   Icon cpassIcon = const Icon(Icons.visibility_off);
 
+  Future register() async {
+    if (!istermAccept &&
+        controllerPass.text.isNotEmpty &&
+        controllerID.text.isNotEmpty &&
+        controllerPass.text.isNotEmpty) {
+      return errorMessage(context, "Please accept our Terms & Conditions!");
+    } else if (controllerPass.text.isEmpty &&
+        controllerID.text.isEmpty &&
+        controllerPass.text.isEmpty) {
+      return errorMessage(context, "Please fill the entries!");
+    }
+
+    final isValid = formkey.currentState!.validate();
+    if (!isValid) return;
+
+    /*showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()));*/
+
+    try {
+      UserCredential result = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: controllerID.text.trim(),
+              password: controllerPass.text.trim());
+      User? user = result.user;
+      // ignore: deprecated_member_use
+      user?.updateProfile(displayName: controllerName.text.trim());
+    } on FirebaseAuthException catch (e) {
+      errorMessage(context, e.code);
+    }
+
+    //navigatorKey.currentState!.popUntil((route) => route.isFirst);
+  }
+
+  @override
+  void dispose() {
+    controllerName.dispose();
+    controllerID.dispose();
+    controllerPass.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         body: SafeArea(
             child: SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.only(right: 10, left: 10),
+                child: Padding(
+      padding: const EdgeInsets.only(right: 10, left: 10),
+      child: Form(
+        key: formkey,
         child: Column(
           children: <Widget>[
             Padding(
@@ -51,15 +100,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Text("Register a new Account",
                               style: TextStyle(fontSize: 15)))),
                 ])),
-            TextField(
-              onChanged: ((value) => setState(() {
-                    if (value.isNotEmpty) {
-                      fnameVis = true;
-                    } else {
-                      fnameVis = false;
-                    }
-                  })),
-              controller: nameController,
+            TextFormField(
+              validator: ((value) =>
+                  value!.isEmpty ? 'Enter your proper name' : null),
+              controller: controllerName,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Full Name',
@@ -68,15 +112,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             Container(
                 padding: const EdgeInsets.only(top: 10),
-                child: TextField(
-                  onChanged: ((value) => setState(() {
-                        if (value.isNotEmpty) {
-                          emailVis = true;
-                        } else {
-                          emailVis = false;
-                        }
-                      })),
-                  controller: idController,
+                child: TextFormField(
+                  validator: ((value) =>
+                      value != null && !EmailValidator.validate(value)
+                          ? 'Enter a valid email address'
+                          : null),
+                  controller: controllerID,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Username or Email',
@@ -85,16 +126,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 )),
             Container(
               padding: const EdgeInsets.only(top: 10),
-              child: TextField(
-                onChanged: ((value) => setState(() {
-                      if (value.isNotEmpty) {
-                        passVis = true;
-                      } else {
-                        passVis = false;
-                      }
-                    })),
+              child: TextFormField(
+                validator: ((value) =>
+                    value!.isEmpty == true || value.length < 6
+                        ? 'Password should have atleast 6 characters, '
+                        : null),
                 obscureText: !ispassTextVis,
-                controller: passwordController,
+                controller: controllerPass,
                 decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: 'Password',
@@ -113,16 +151,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             Container(
               padding: const EdgeInsets.only(top: 10),
-              child: TextField(
-                onChanged: ((value) => setState(() {
-                      if (value.isNotEmpty) {
-                        cpassVis = true;
-                      } else {
-                        cpassVis = false;
-                      }
-                    })),
+              child: TextFormField(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: ((value) =>
+                    value!.isEmpty == true || value != controllerPass.text
+                        ? 'Incorrect Password!'
+                        : null),
                 obscureText: !iscpassTextVis,
-                controller: confpassController,
                 decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: 'Confirm Password',
@@ -179,47 +214,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 splashColor: Colors.transparent,
                                 highlightColor: Colors.transparent,
                                 textColor: Colors.white,
-                                color: (fnameVis &&
-                                        emailVis &&
-                                        passVis &&
-                                        cpassVis &&
-                                        istermAccept)
-                                    ? Colors.blueAccent
-                                    : Colors.grey,
-                                onPressed: () => (fnameVis &&
-                                        emailVis &&
-                                        passVis &&
-                                        cpassVis)
-                                    ? (fnameVis &&
-                                            emailVis &&
-                                            passVis &&
-                                            cpassVis &&
-                                            istermAccept)
-                                        ? {
-                                            setState(() {
-                                              nameController.clear();
-                                              idController.clear();
-                                              passwordController.clear();
-                                              confpassController.clear();
-                                              fnameVis = false;
-                                              emailVis = false;
-                                              passVis = false;
-                                              cpassVis = false;
-                                              istermAccept = false;
-                                              loginMessage(
-                                                  context,
-                                                  "Account Successfully Registered",
-                                                  false);
-                                            })
-                                          }
-                                        : loginMessage(
-                                            context,
-                                            "Please accept our Terms & Conditions",
-                                            true)
-                                    : loginMessage(
-                                        context,
-                                        "Please fill the entries before proceeding",
-                                        true),
+                                color: Colors.blueAccent,
+                                onPressed: register,
                                 child: const Text("Register",
                                     style: TextStyle(fontSize: 16))))))),
             const Divider(),
@@ -267,6 +263,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
       ),
-    )));
+    ))));
   }
 }

@@ -1,8 +1,13 @@
+// ignore_for_file: dead_code
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-import 'package:week5_assignment/Functions/login_func.dart';
+import 'package:week5_assignment/Functions/logreg_error.dart';
+
 import 'package:week5_assignment/UI/register_screen.dart';
+
+import 'package:week5_assignment/main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,8 +18,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  TextEditingController idController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+  TextEditingController controllerID = TextEditingController();
+  TextEditingController controllerPass = TextEditingController();
 
   bool isTextVis = false;
   Icon passIcon = const Icon(Icons.visibility_off);
@@ -23,6 +28,24 @@ class _LoginScreenState extends State<LoginScreen> {
   bool passTextVis = false;
 
   bool isKeepme = true;
+
+  Future logIn() async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: controllerID.text.trim(),
+          password: controllerPass.text.trim());
+    } on FirebaseAuthException catch (e) {
+      errorMessage(context, e.code);
+    }
+  }
+
+  @override
+  void dispose() {
+    controllerID.dispose();
+    controllerPass.dispose();
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       userTextVis = false;
                     }
                   })),
-              controller: idController,
+              controller: controllerID,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Username or Email',
@@ -77,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
                     })),
                 obscureText: !isTextVis,
-                controller: passwordController,
+                controller: controllerPass,
                 decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: 'Password',
@@ -121,28 +144,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
                             child: MaterialButton(
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                textColor: Colors.white,
-                                color: (userTextVis && passTextVis)
-                                    ? Colors.blueAccent
-                                    : Colors.grey,
-                                onPressed: () => ((idController.text.isEmpty) ==
-                                            false &&
-                                        (passwordController.text.isEmpty) ==
-                                            false)
-                                    ? loginFoo(context, idController.text)
-                                    : Fluttertoast.showToast(
-                                        msg:
-                                            "Please fill the entries before proceeding",
-                                        toastLength: Toast.LENGTH_SHORT,
-                                        gravity: ToastGravity.CENTER,
-                                        timeInSecForIosWeb: 1,
-                                        backgroundColor: Colors.red,
-                                        textColor: Colors.white,
-                                        fontSize: 16.0),
-                                child: const Text("Login",
-                                    style: TextStyle(fontSize: 16))))))),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              textColor: Colors.white,
+                              color: (userTextVis && passTextVis)
+                                  ? Colors.blueAccent
+                                  : Colors.grey,
+                              onPressed: logIn,
+                              child: const Text("login"),
+                            ))))),
             const Divider(),
             Row(children: <Widget>[
               const Text("Don't have an account!"),
