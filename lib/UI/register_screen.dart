@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:week5_assignment/Functions/logreg_error.dart';
 import 'package:week5_assignment/UI/login_screen.dart';
 import 'package:week5_assignment/main.dart';
@@ -20,6 +22,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final controllerName = TextEditingController();
   final controllerID = TextEditingController();
+  final controllerReg = TextEditingController();
+  final controllerMaj = TextEditingController();
+  final controllerSem = TextEditingController();
   final controllerPass = TextEditingController();
 
   bool fnameVis = false, emailVis = false, passVis = false, cpassVis = false;
@@ -46,24 +51,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final isValid = formkey.currentState!.validate();
     if (!isValid) return;
 
-    /*showDialog(
+    showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()));*/
+        builder: (context) => const Center(child: CircularProgressIndicator()));
 
     try {
-      UserCredential result = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-              email: controllerID.text.trim(),
-              password: controllerPass.text.trim());
-      User? user = result.user;
-      // ignore: deprecated_member_use
-      user?.updateProfile(displayName: controllerName.text.trim());
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: controllerID.text.trim(),
+          password: controllerPass.text.trim());
+
+      addUserDetails(
+          controllerName.text.trim(),
+          controllerReg.text.trim(),
+          controllerMaj.text.trim(),
+          int.parse(controllerSem.text.trim()),
+          controllerID.text.trim());
+
+      Fluttertoast.showToast(
+          msg: "Successfully Registered!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0);
     } on FirebaseAuthException catch (e) {
       errorMessage(context, e.code);
     }
+    navigatorKey.currentState!.popUntil((route) => route.isFirst);
+  }
 
-    //navigatorKey.currentState!.popUntil((route) => route.isFirst);
+  Future addUserDetails(
+      String fname, String regno, String subject, int sem, String email) async {
+    await FirebaseFirestore.instance.collection('users').add({
+      'full name': fname,
+      'reg number': regno,
+      'subject': subject,
+      'semester': sem,
+      'email': email,
+    });
   }
 
   @override
@@ -71,6 +98,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     controllerName.dispose();
     controllerID.dispose();
     controllerPass.dispose();
+    controllerReg.dispose();
+    controllerMaj.dispose();
+    controllerSem.dispose();
+
     super.dispose();
   }
 
@@ -90,7 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(children: const <Widget>[
                   Icon(
                     Icons.account_circle,
-                    size: 100,
+                    size: 110,
                     color: Colors.blue,
                   ),
                   Padding(
@@ -107,9 +138,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Full Name',
-                prefixIcon: Icon(Icons.mail),
+                prefixIcon: Icon(Icons.person_outline),
               ),
             ),
+            Container(
+                padding: const EdgeInsets.only(top: 10),
+                child: TextFormField(
+                  validator: ((value) => value!.isEmpty
+                      ? 'Enter your proper registration number'
+                      : null),
+                  controller: controllerReg,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Registration Number',
+                    prefixIcon: Icon(Icons.payment_outlined),
+                  ),
+                )),
+            Container(
+                padding: const EdgeInsets.only(top: 10),
+                child: TextFormField(
+                  validator: ((value) =>
+                      value!.isEmpty ? 'Enter your proper major' : null),
+                  controller: controllerMaj,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Subject / Major',
+                    prefixIcon: Icon(Icons.book_outlined),
+                  ),
+                )),
+            Container(
+                padding: const EdgeInsets.only(top: 10),
+                child: TextFormField(
+                  validator: ((value) =>
+                      value!.isEmpty ? 'Enter your semester' : null),
+                  controller: controllerSem,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Semester',
+                    prefixIcon: Icon(Icons.numbers),
+                  ),
+                )),
             Container(
                 padding: const EdgeInsets.only(top: 10),
                 child: TextFormField(
@@ -120,8 +188,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: controllerID,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: 'Username or Email',
-                    prefixIcon: Icon(Icons.mail),
+                    labelText: 'Email Address',
+                    prefixIcon: Icon(Icons.mail_outlined),
                   ),
                 )),
             Container(
@@ -136,7 +204,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                         onPressed: () => setState(() {
                               ispassTextVis = !ispassTextVis;
@@ -161,7 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: 'Confirm Password',
-                    prefixIcon: const Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                         onPressed: () => setState(() {
                               iscpassTextVis = !iscpassTextVis;

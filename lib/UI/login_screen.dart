@@ -1,12 +1,10 @@
 // ignore_for_file: dead_code
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:week5_assignment/Functions/logreg_error.dart';
 
 import 'package:week5_assignment/UI/register_screen.dart';
-
 import 'package:week5_assignment/main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,6 +28,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isKeepme = true;
 
   Future logIn() async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()));
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: controllerID.text.trim(),
@@ -37,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       errorMessage(context, e.code);
     }
+    navigatorKey.currentState!.popUntil((route) => route.isFirst);
   }
 
   @override
@@ -85,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: controllerID,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: 'Username or Email',
+                labelText: 'Email Address',
                 prefixIcon: Icon(Icons.mail),
               ),
             ),
@@ -147,9 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               splashColor: Colors.transparent,
                               highlightColor: Colors.transparent,
                               textColor: Colors.white,
-                              color: (userTextVis && passTextVis)
-                                  ? Colors.blueAccent
-                                  : Colors.grey,
+                              color: Colors.blueAccent,
                               onPressed: logIn,
                               child: const Text("login"),
                             ))))),
